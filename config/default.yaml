@@ -1,0 +1,15 @@
+# AI Memory Engine 默认配置
+
+# 记忆存储根目录（相对于项目根或绝对路径）
+memoryDir: memory
+
+# 索引文件
+indexFile: MEMORY.md
+
+# 候选队列文件
+candidateQueueFile: .meta/candidates-queue.yaml
+
+# 约束
+maxRelatedMemories: 10
+maxIndexLines: 200
+minConfidence: 0.6

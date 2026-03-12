@@ -1,0 +1,36 @@
+{
+  "name": "ai-memory-engine",
+  "version": "0.1.0",
+  "description": "通用 AI 记忆引擎 — 纯数据操作 MCP Server，智能由宿主模型承担",
+  "type": "module",
+  "main": "dist/adapters/claude-code/mcp-server.js",
+  "bin": {
+    "ai-memory-engine": "dist/adapters/claude-code/mcp-server.js",
+    "ai-memory-scan": "dist/bin/scan.js",
+    "ai-memory-extract": "dist/bin/extract-prompt.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/adapters/claude-code/mcp-server.ts",
+    "start": "node dist/adapters/claude-code/mcp-server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

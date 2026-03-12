@@ -1,0 +1,12 @@
+{
+  "//": "MCP Server 注册 — 复制到 ~/.claude/settings.json 的 mcpServers 字段",
+  "mcpServers": {
+    "ai-memory-engine": {
+      "command": "node",
+      "args": ["/path/to/ai-memory-engine/dist/adapters/claude-code/mcp-server.js"],
+      "env": {
+        "MEMORY_DIR": "/path/to/memory"
+      }
+    }
+  }
+}

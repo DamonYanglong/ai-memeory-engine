@@ -1,0 +1,17 @@
+{
+  "//": "Claude Code Hooks 配置 — 复制到 ~/.claude/settings.json 的 hooks 字段",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "command": "USER_PROMPT=\"$USER_PROMPT\" node /path/to/ai-memory-engine/dist/bin/scan.js"
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "MEMORY_DIR=\"$HOME/ai-memory/memory\" node /path/to/ai-memory-engine/dist/bin/extract-prompt.js"
+      }
+    ]
+  }
+}
