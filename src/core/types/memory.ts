@@ -126,21 +126,6 @@ export type ConflictChoice = "replace" | "keep" | "coexist";
 /** 新旧记忆的四种关系 */
 export type ConflictRelation = "contradicts" | "supplements" | "duplicates" | "unrelated";
 
-// ─── 检索 ──────────────────────────────────────
-
-/** retrieve_memories 的返回结果 */
-export interface RetrievalResult {
-  /** 格式化后可直接注入上下文的内容 */
-  formatted: string;
-  /** 命中的记忆条目（用于展开详情） */
-  entries: MemoryEntry[];
-  /** 检索统计 */
-  stats: {
-    totalMatched: number;
-    totalTokensEstimate: number;
-  };
-}
-
 // ─── 候选队列（正则预筛选层） ──────────────────
 
 /** 候选队列条目：正则匹配后写入，等待宿主模型审核 */
@@ -169,11 +154,6 @@ export const MCP_TOOLS = {
   // 存储
   STORE_MEMORY: "store_memory",
   RESOLVE_CONFLICT: "resolve_conflict",
-  // 检索
-  RETRIEVE_MEMORIES: "retrieve_memories",
-  EXPAND_DETAIL: "expand_detail",
-  // 搜索
-  SEARCH_MEMORIES: "search_memories",
   // 管理
   GET_MEMORY_STATS: "get_memory_stats",
   LIST_PENDING_CONFLICTS: "list_pending_conflicts",

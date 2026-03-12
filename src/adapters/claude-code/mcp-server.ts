@@ -15,14 +15,12 @@ import { z } from "zod";
 import { join } from "node:path";
 import { MCP_TOOLS } from "../../core/types/memory.js";
 import { Storage } from "../../core/storage/index.js";
-import { Retriever } from "../../core/retriever/index.js";
 import { Extractor } from "../../core/extractor/index.js";
 
 /** 记忆存储目录，默认为当前工作目录下的 memory/ */
 const memoryDir = process.env.MEMORY_DIR ?? join(process.cwd(), "memory");
 
 const storage = new Storage(memoryDir);
-const retriever = new Retriever(storage.fileManager);
 const extractor = new Extractor();
 
 const server = new McpServer({
@@ -92,57 +90,6 @@ server.tool(
     );
     return {
       content: [{ type: "text" as const, text: JSON.stringify(result) }],
-    };
-  },
-);
-
-// ─── 检索工具 ──────────────────────────────────
-
-server.tool(
-  MCP_TOOLS.RETRIEVE_MEMORIES,
-  "根据查询检索相关记忆。返回格式化内容，可直接注入上下文。",
-  {
-    query: z.string().describe("查询内容（自然语言或关键词）"),
-  },
-  async (params) => {
-    const result = await retriever.retrieve(params.query);
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(result) }],
-    };
-  },
-);
-
-server.tool(
-  MCP_TOOLS.EXPAND_DETAIL,
-  "展开一条记忆的详情内容。返回详情文件的「要点」区块。",
-  {
-    filePath: z.string().describe("记忆文件路径，如 details/no-pagehelper.md"),
-  },
-  async (params) => {
-    const content = await storage.readMemory(params.filePath);
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: content?.body ?? "",
-        },
-      ],
-    };
-  },
-);
-
-// ─── 搜索工具 ──────────────────────────────────
-
-server.tool(
-  MCP_TOOLS.SEARCH_MEMORIES,
-  "按关键词搜索记忆条目。返回匹配的记忆列表。",
-  {
-    keywords: z.array(z.string()).describe("搜索关键词列表"),
-  },
-  async (params) => {
-    const entries = await storage.search(params.keywords);
-    return {
-      content: [{ type: "text" as const, text: JSON.stringify(entries) }],
     };
   },
 );
