@@ -82,6 +82,10 @@ export interface MemoryContent {
     confidence: number;
   };
   relatedMemories: RelatedMemory[];
+  /** frontmatter 元数据（多机同步重建用），旧格式文件可能缺失 */
+  keywords?: string[];
+  trigger?: TriggerType;
+  createdAt?: string;
 }
 
 /** 关联记忆链接 */
@@ -194,7 +198,7 @@ export interface EngineConfig {
   memoryDir: string;
   /** 索引文件名，默认 MEMORY.md */
   indexFile: string;
-  /** 候选队列文件名 */
+  /** 候选队列文件名，留空 = 按主机隔离（.meta/candidates-queue.<host>.yaml） */
   candidateQueueFile: string;
   /** 单文件关联链接上限 */
   maxRelatedMemories: number;
@@ -208,7 +212,7 @@ export interface EngineConfig {
 export const DEFAULT_CONFIG: EngineConfig = {
   memoryDir: "memory",
   indexFile: "MEMORY.md",
-  candidateQueueFile: ".meta/candidates-queue.yaml",
+  candidateQueueFile: "",
   maxRelatedMemories: 10,
   maxIndexLines: 200,
   minConfidence: 0.6,

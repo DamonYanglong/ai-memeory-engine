@@ -10,9 +10,11 @@
  * 4. 元数据注册表（registry.yaml）维护
  */
 
-import { readFile, writeFile, mkdir, access } from "node:fs/promises";
+import { readFile, mkdir, access, readdir } from "node:fs/promises";
 import { join, dirname, relative } from "node:path";
 import yaml from "js-yaml";
+import matter from "gray-matter";
+import { writeFileAtomic } from "./fs-utils.js";
 import type {
   CandidateMemory,
   MemoryContent,
@@ -104,6 +106,24 @@ export class FileManager {
     }
   }
 
+  /** 列出所有已存储的记忆文件相对路径（details/cases/principles 三目录） */
+  async listMemoryFiles(): Promise<string[]> {
+    const results: string[] = [];
+    for (const type of ["details", "cases", "principles"] as const) {
+      try {
+        const files = await readdir(join(this.memoryDir, type));
+        for (const f of files) {
+          if (f.endsWith(".md")) {
+            results.push(`${type}/${f}`);
+          }
+        }
+      } catch {
+        // 目录不存在则跳过
+      }
+    }
+    return results.sort();
+  }
+
   // ─── 写入详情文件 ─────────────────────────────
 
   /** 将候选记忆写入 Markdown 文件 */
@@ -113,12 +133,25 @@ export class FileManager {
     await mkdir(dirname(fullPath), { recursive: true });
 
     const content = this.generateMarkdown(candidate);
-    await writeFile(fullPath, content, "utf-8");
+    await writeFileAtomic(fullPath, content);
   }
 
-  /** 根据记忆类型生成对应格式的 Markdown */
+  /**
+   * 根据记忆类型生成对应格式的 Markdown
+   *
+   * frontmatter 携带重建聚合文件（registry.yaml / MEMORY.md）所需的全部元数据，
+   * 使单条记忆文件自包含 — 多机 git 同步时聚合文件可随时从文件集重建。
+   */
   private generateMarkdown(candidate: CandidateMemory): string {
     const timestamp = candidate.source?.timestamp ?? new Date().toISOString().split("T")[0];
+    const frontmatter = {
+      type: candidate.type,
+      summary: candidate.summary,
+      keywords: candidate.keywords,
+      trigger: candidate.trigger,
+      confidence: candidate.confidence,
+      createdAt: timestamp,
+    };
     const sourceBlock = [
       "## 来源",
       "",
@@ -129,9 +162,10 @@ export class FileManager {
 
     const relatedBlock = ["## 关联记忆", "", "（暂无）"].join("\n");
 
+    let body: string;
     switch (candidate.type) {
       case "details":
-        return [
+        body = [
           `# ${candidate.summary}`,
           "",
           "## 要点",
@@ -143,9 +177,10 @@ export class FileManager {
           relatedBlock,
           "",
         ].join("\n");
+        break;
 
       case "cases":
-        return [
+        body = [
           `# ${candidate.summary}`,
           "",
           "## 经过",
@@ -157,9 +192,10 @@ export class FileManager {
           relatedBlock,
           "",
         ].join("\n");
+        break;
 
       case "principles":
-        return [
+        body = [
           `# ${candidate.summary}`,
           "",
           "## 规范",
@@ -171,7 +207,9 @@ export class FileManager {
           relatedBlock,
           "",
         ].join("\n");
+        break;
     }
+    return matter.stringify(body, frontmatter);
   }
 
   // ─── 读取与解析 ────────────────────────────────
@@ -197,23 +235,33 @@ export class FileManager {
     }
   }
 
-  /** 解析 Markdown 为结构化数据 */
+  /** 解析 Markdown 为结构化数据（含 frontmatter 元数据） */
   private parseMarkdown(raw: string, filePath: string): MemoryContent {
-    const lines = raw.split("\n");
+    const { data: fm, content } = matter(raw);
+    const lines = content.split("\n");
 
     // 解析标题
     const titleLine = lines.find((l) => l.startsWith("# "));
     const title = titleLine?.replace(/^# /, "") ?? "";
 
-    // 推断类型
-    const type = this.inferType(filePath);
+    // frontmatter 优先，缺省时从路径/正文推断（兼容无 frontmatter 的旧文件）
+    const type = (fm.type as MemoryType) ?? this.inferType(filePath);
 
     // 解析各区块
     const body = this.extractSection(lines, ["要点", "经过", "规范"]);
     const source = this.extractSource(lines);
     const relatedMemories = this.extractRelatedMemories(lines);
 
-    return { title, type, body, source, relatedMemories };
+    return {
+      title: typeof fm.summary === "string" && fm.summary ? fm.summary : title,
+      type,
+      body,
+      source,
+      relatedMemories,
+      keywords: Array.isArray(fm.keywords) ? (fm.keywords as string[]) : undefined,
+      trigger: typeof fm.trigger === "string" ? (fm.trigger as MemoryContent["source"]["trigger"]) : undefined,
+      createdAt: typeof fm.createdAt === "string" ? fm.createdAt : undefined,
+    };
   }
 
   /** 从文件路径推断记忆类型 */
@@ -326,7 +374,7 @@ export class FileManager {
       lines.splice(insertIdx, 0, content);
     }
 
-    await writeFile(join(this.memoryDir, filePath), lines.join("\n"), "utf-8");
+    await writeFileAtomic(join(this.memoryDir, filePath), lines.join("\n"));
   }
 
   /** 替换文件的关联记忆区块 */
@@ -355,7 +403,7 @@ export class FileManager {
         : ["", "（暂无）", ""];
 
     lines.splice(sectionStart, sectionEnd - sectionStart, ...linkLines);
-    await writeFile(join(this.memoryDir, filePath), lines.join("\n"), "utf-8");
+    await writeFileAtomic(join(this.memoryDir, filePath), lines.join("\n"));
   }
 
   // ─── 元数据注册表 ─────────────────────────────
@@ -374,7 +422,7 @@ export class FileManager {
   async saveRegistry(registry: MemoryRegistry): Promise<void> {
     await mkdir(dirname(this.registryPath), { recursive: true });
     registry.lastUpdated = new Date().toISOString();
-    await writeFile(this.registryPath, yaml.dump(registry, { lineWidth: 120 }), "utf-8");
+    await writeFileAtomic(this.registryPath, yaml.dump(registry, { lineWidth: 120 }));
   }
 
   /** 向注册表添加条目 */

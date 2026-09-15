@@ -7,8 +7,9 @@
  * 结构：二级标题（领域）→ 三级标题（主题）→ 列表项（一句话摘要 + 链接）
  */
 
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { writeFileAtomic } from "./fs-utils.js";
 
 /** 索引中的一个条目 */
 export interface IndexEntry {
@@ -40,6 +41,11 @@ export class IndexManager {
     } catch {
       return "";
     }
+  }
+
+  /** 整体写入 MEMORY.md 原始内容（重建用） */
+  async writeIndex(content: string): Promise<void> {
+    await writeFileAtomic(this.indexPath, content);
   }
 
   /** 解析 MEMORY.md 为结构化数据 */
@@ -122,7 +128,7 @@ export class IndexManager {
     const target = this.findTargetSection(raw, params);
     const updated = this.insertEntry(raw, entryLine, target);
 
-    await writeFile(this.indexPath, updated, "utf-8");
+    await writeFileAtomic(this.indexPath, updated);
   }
 
   /** 查找目标分类位置 */
@@ -238,6 +244,6 @@ export class IndexManager {
     const raw = await this.readIndex();
     const lines = raw.split("\n");
     const filtered = lines.filter((line) => !line.includes(`(${filePath})`));
-    await writeFile(this.indexPath, filtered.join("\n"), "utf-8");
+    await writeFileAtomic(this.indexPath, filtered.join("\n"));
   }
 }

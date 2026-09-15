@@ -6,8 +6,9 @@ memoryDir: memory
 # 索引文件
 indexFile: MEMORY.md
 
-# 候选队列文件
-candidateQueueFile: .meta/candidates-queue.yaml
+# 候选队列文件（留空 = 按主机隔离：.meta/candidates-queue.<hostname>.yaml，
+# 多机 git 同步时本机候选不跨机共享，且被 .gitignore 排除）
+candidateQueueFile: ""
 
 # 约束
 maxRelatedMemories: 10

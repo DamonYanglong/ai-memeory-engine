@@ -12,10 +12,11 @@
  * 此模块只做关键词级别的"候选发现"。
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, mkdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import yaml from "js-yaml";
 import { randomUUID } from "node:crypto";
+import { writeFileAtomic } from "./fs-utils.js";
 import type {
   CandidateMemory,
   ConflictInfo,
@@ -353,12 +354,12 @@ export class ConflictDetector {
     const pending = await this.loadConflicts();
     pending.conflicts.push(conflict);
     await mkdir(dirname(this.conflictsPath), { recursive: true });
-    await writeFile(this.conflictsPath, yaml.dump(pending, { lineWidth: 120 }), "utf-8");
+    await writeFileAtomic(this.conflictsPath, yaml.dump(pending, { lineWidth: 120 }));
   }
 
   private async removeConflict(conflictId: string): Promise<void> {
     const pending = await this.loadConflicts();
     pending.conflicts = pending.conflicts.filter((c) => c.conflictId !== conflictId);
-    await writeFile(this.conflictsPath, yaml.dump(pending, { lineWidth: 120 }), "utf-8");
+    await writeFileAtomic(this.conflictsPath, yaml.dump(pending, { lineWidth: 120 }));
   }
 }

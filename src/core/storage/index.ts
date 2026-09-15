@@ -25,6 +25,7 @@ import { IndexManager } from "./index-manager.js";
 import { LinkManager } from "./link-manager.js";
 import { ConflictDetector } from "./conflict.js";
 import { CandidateQueue } from "./candidate-queue.js";
+import { Rebuilder, type RebuildResult } from "./rebuild.js";
 
 export class Storage {
   readonly fileManager: FileManager;
@@ -46,6 +47,17 @@ export class Storage {
   /** 初始化存储目录 */
   async initialize(): Promise<void> {
     await this.fileManager.ensureDirs();
+  }
+
+  /**
+   * 重建聚合文件（registry.yaml / MEMORY.md）
+   *
+   * 单条记忆文件是真相源，聚合文件是派生物。
+   * 多机 git 合并产生冲突后调用，以文件集并集恢复一致性。
+   */
+  async rebuild(): Promise<RebuildResult> {
+    const rebuilder = new Rebuilder(this.fileManager, this.indexManager);
+    return rebuilder.rebuild();
   }
 
   /**
