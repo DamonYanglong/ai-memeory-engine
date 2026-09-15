@@ -8,13 +8,15 @@ description: "手动触发记忆提取。回顾本次会话，提取用户纠正
 
 ## 步骤
 
-1. 调用 MCP 工具 `get_extract_prompt()` 获取提取 Prompt
+1. 调用 **ai-memory-engine** MCP Server 的 `get_extract_prompt` 工具获取提取 Prompt
 2. 按照 Prompt 指引完成三步提取：
    - **审核候选队列**：验证正则预筛选的候选项，过滤误匹配
    - **补充遗漏**：回顾对话，发现正则未捕获的隐含偏好和经验
-   - **生成并写入**：对每条有效记忆调用 `store_memory()` 写入
+   - **生成并写入**：对每条有效记忆调用 **ai-memory-engine** 的 `store_memory` 工具写入
 3. 处理冲突：如果 `store_memory` 返回冲突，向用户展示对比并请求裁决
-4. 调用 `clear_candidate_queue()` 清空队列
+4. 调用 **ai-memory-engine** 的 `clear_candidate_queue` 工具清空队列
+
+> **重要**：所有记忆操作必须使用 **ai-memory-engine** MCP Server 的工具，不要使用 serena 或其他 MCP Server 的记忆工具。
 5. 向用户汇报提取结果
 
 ## 判断标准
