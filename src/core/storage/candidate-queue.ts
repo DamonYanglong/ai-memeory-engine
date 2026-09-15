@@ -5,12 +5,18 @@
  *
  * 正则 Hook 实时写入候选项，宿主模型在会话结束时读取审核。
  * 存储格式：YAML 文件，7 天自动过期。
+ *
+ * 多机同步注意：队列文件按主机名隔离（candidates-queue.<host>.yaml），
+ * 且被 .gitignore 排除 — 候选是"本机本会话"的暂存状态，
+ * 跨机共享会导致另一台机器的会话结束时提取到不相关候选。
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, mkdir, rename } from "node:fs/promises";
 import { join, dirname } from "node:path";
+import { hostname } from "node:os";
 import yaml from "js-yaml";
 import type { QueueItem } from "../types/memory.js";
+import { writeFileAtomic } from "./fs-utils.js";
 
 /** 候选队列文件结构 */
 interface QueueFile {
@@ -19,10 +25,15 @@ interface QueueFile {
 
 export class CandidateQueue {
   private readonly queuePath: string;
+  /** 历史共享队列文件（迁移用） */
+  private readonly legacyPath: string;
   private static readonly RETENTION_DAYS = 7;
 
-  constructor(memoryDir: string, queueFile = ".meta/candidates-queue.yaml") {
-    this.queuePath = join(memoryDir, queueFile);
+  constructor(memoryDir: string, queueFile?: string) {
+    // 显式指定则尊重配置；缺省按主机隔离
+    const file = queueFile?.trim() || `.meta/candidates-queue.${hostname()}.yaml`;
+    this.queuePath = join(memoryDir, file);
+    this.legacyPath = join(memoryDir, ".meta", "candidates-queue.yaml");
   }
 
   /** 读取所有候选项（自动清除过期条目） */
@@ -66,6 +77,7 @@ export class CandidateQueue {
   // ─── 内部 ──────────────────────────────────────
 
   private async load(): Promise<QueueFile> {
+    await this.migrateLegacyIfNeeded();
     try {
       const raw = await readFile(this.queuePath, "utf-8");
       return (yaml.load(raw) as QueueFile) ?? { items: [] };
@@ -74,8 +86,18 @@ export class CandidateQueue {
     }
   }
 
+  /** 历史共享队列文件 → 本机队列文件（仅执行一次） */
+  private async migrateLegacyIfNeeded(): Promise<void> {
+    if (this.queuePath === this.legacyPath) return;
+    try {
+      await rename(this.legacyPath, this.queuePath);
+    } catch {
+      // 旧文件不存在或已迁移，忽略
+    }
+  }
+
   private async save(queue: QueueFile): Promise<void> {
     await mkdir(dirname(this.queuePath), { recursive: true });
-    await writeFile(this.queuePath, yaml.dump(queue, { lineWidth: 120 }), "utf-8");
+    await writeFileAtomic(this.queuePath, yaml.dump(queue, { lineWidth: 120 }));
   }
 }

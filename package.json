@@ -7,7 +7,9 @@
   "bin": {
     "ai-memory-engine": "dist/adapters/claude-code/mcp-server.js",
     "ai-memory-scan": "dist/bin/scan.js",
-    "ai-memory-extract": "dist/bin/extract-prompt.js"
+    "ai-memory-extract": "dist/bin/extract-prompt.js",
+    "ai-memory-setup": "dist/bin/setup.js",
+    "ai-memory-sync": "dist/bin/mem-sync.js"
   },
   "scripts": {
     "build": "tsc",

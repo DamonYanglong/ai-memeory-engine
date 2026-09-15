@@ -1,6 +1,17 @@
 {
-  "//": "Claude Code Hooks 配置 — 复制到 ~/.claude/settings.json 的 hooks 字段",
+  "//": "Claude Code Hooks 配置 — 复制到 ~/.claude/settings.json 的 hooks 字段。mem-sync 钩子在 memory 目录未 git 化时自动静默跳过。",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MEMORY_DIR=\"$HOME/ai-memory/memory\" node /path/to/ai-memory-engine/dist/bin/mem-sync.js sync --quiet; cat \"$HOME/ai-memory/memory/MEMORY.md\" 2>/dev/null || echo \"记忆库为空，暂无跨会话记忆。\""
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "",
@@ -10,7 +21,16 @@
     "Stop": [
       {
         "matcher": "",
-        "command": "MEMORY_DIR=\"$HOME/ai-memory/memory\" node /path/to/ai-memory-engine/dist/bin/extract-prompt.js"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MEMORY_DIR=\"$HOME/ai-memory/memory\" node /path/to/ai-memory-engine/dist/bin/extract-prompt.js"
+          },
+          {
+            "type": "command",
+            "command": "MEMORY_DIR=\"$HOME/ai-memory/memory\" node /path/to/ai-memory-engine/dist/bin/mem-sync.js push --quiet"
+          }
+        ]
       }
     ]
   }
