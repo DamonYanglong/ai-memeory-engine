@@ -9,7 +9,8 @@
     "ai-memory-scan": "dist/bin/scan.js",
     "ai-memory-extract": "dist/bin/extract-prompt.js",
     "ai-memory-setup": "dist/bin/setup.js",
-    "ai-memory-sync": "dist/bin/mem-sync.js"
+    "ai-memory-sync": "dist/bin/mem-sync.js",
+    "ai-memory-bootstrap": "dist/bin/bootstrap-server.js"
   },
   "scripts": {
     "build": "tsc",
